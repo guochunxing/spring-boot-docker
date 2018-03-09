@@ -1,0 +1,59 @@
+version: '3'
+services:
+
+  jumpserver:
+    image: registry.jumpserver.org/public/jumpserver:latest
+    container_name: jumpserver
+    restart: always
+    ports:
+      - 2222:2222
+    volumes:
+      - static:/opt/jumpserver/data/static
+      - media:/opt/jumpserver/data/media
+      - logs:/opt/jumpserver/logs
+      # 如果配置配件修改了，请修改挂载的目录
+      - ./config_docker.py:/opt/jumpserver/config.py
+      - coco-key:/opt/coco/keys
+      - redis-data:/data
+      - mysql-data:/var/lib/mysql
+    networks:
+      - jumpserver
+
+  nginx:
+      image: registry.fit2cloud.com/public/nginx:alpine
+      container_name: nginx
+      restart: always
+      ports:
+        - 8088:80
+      volumes:
+        - static:/data/static
+        - media:/data/media
+        - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      networks:
+        - jumpserver
+
+  guacamole:
+    image: registry.jumpserver.org/public/guacamole:latest
+    container_name: guacamole
+    restart: always
+    environment:
+      JUMPSERVER_SERVER: http://jumpserver:8080
+      JUMPSERVER_KEY_DIR: /config/guacamole/key/
+    volumes:
+      - gua-key:/config/guacamole/key/
+    depends_on:
+      - jumpserver
+    networks:
+      - jumpserver
+
+volumes:
+  static:
+  media:
+  logs:
+  mysql-data:
+  redis-data:
+  coco-key:
+  gua-key:
+
+networks:
+  jumpserver:
